@@ -147,7 +147,7 @@ void print_cpu_str()
                         printf("</tr>\n");
                         break;
                 case LIST:
-			printf("<li>%s Hostname: %s<li>Serial: %s", msg, hostname);
+			printf("<li>%s Hostname: %s", msg, hostname);
 			printf("<li>Serial: %s", serial);
                         break;
                 default:
