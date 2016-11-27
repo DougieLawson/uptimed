@@ -139,19 +139,20 @@ void print_cpu_str()
         {
                 case TABLE:
                         printf("<tr>\n");
-                        printf("<td>%s</td>\n", msg);
-                        printf("<td>&nbsp;</td>\n");
-                        printf("<td>Hostname</td>\n");
-                        printf("<td>%s</td>\n",hostname);
-                        printf("<tr><td>Serial: %s</td></tr>", serial);
+                        printf("<td colspan=2>%s</td>\n", msg);
+                        printf("<td colspan=2>Hostname %s</td>\n",hostname);
+			printf("</tr>\n");
+                        printf("<tr><td colspan=2>&nbsp;</td>\n");
+                        printf("<td colspan=2>Serial: %s</td>\n", serial);
                         printf("</tr>\n");
                         break;
                 case LIST:
-                                printf("<li>%s Hostname: %s<li>Serial: %s", msg, hostname, serial);
+			printf("<li>%s Hostname: %s<li>Serial: %s", msg, hostname);
+			printf("<li>Serial: %s", serial);
                         break;
                 default:
-                        printf("%6s %-*s %*s\n", msg, 5, "Name:", hn_len,  hostname);
-                        printf("%6s %-*s %*s\n", msg, 8, "Serial:", 16, serial);			
+			printf("%6s %-*s %*s\n", msg, 5, "Name:", hn_len,  hostname);
+			printf("%6s %-*s %*s\n", msg, 8, "Serial:", 16, serial);			
         }
 
 }
