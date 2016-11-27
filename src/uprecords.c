@@ -17,6 +17,11 @@ uptimed - Copyright (c) 1998-2004 Rob Kaper <rob@unixcode.org>
 
 #include "../config.h"
 #include "uprecords.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <time.h>
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -29,6 +34,8 @@ Urec	*u_current;
 time_t	first, prev, tenth, second;
 int		runas_cgi=0, show_max=10, show_milestone=0, layout=PRE, show_downtime=0, run_loop=0, update_interval=5;
 int		sort_by=0, no_ansi=0, no_stats=0, no_current=0, wide_out=0;
+FILE *fp;
+char cFile[2048];
 
 int main(int argc, char *argv[])
 {
@@ -91,6 +98,62 @@ int main(int argc, char *argv[])
 		cat("/etc/uprecords-cgi/uprecords.footer");
 
 	return 0;
+}
+
+void print_cpu_str()
+{
+
+        char *substr = "Serial\t\t: ";
+        char *pos = malloc(strlen(cFile) + 1);
+        char hostname[64];
+        char *serial = malloc(18);
+        char *msg = " Host";
+        int hn_len;
+
+        gethostname(hostname, sizeof hostname);
+        hn_len = strlen(hostname);
+
+        fp = fopen("/proc/cpuinfo","rb");
+        if (fp == NULL)
+        {
+                printf("fopen failed, errno = %d\n", errno);
+                exit (20);
+        }
+        fread(cFile, 1, sizeof(cFile), fp);
+
+        pos = strstr(cFile,substr);
+        if(pos)
+        {
+                pos = pos + strlen(substr);
+                strcpy(serial,pos);
+                strcpy(serial+17,"\0");
+        }
+
+        if (runas_cgi) {
+                if (layout!=PRE) {
+                        msg = "CPU Details";
+                }
+        }
+
+        switch(layout)
+        {
+                case TABLE:
+                        printf("<tr>\n");
+                        printf("<td>%s</td>\n", msg);
+                        printf("<td>&nbsp;</td>\n");
+                        printf("<td>Hostname</td>\n");
+                        printf("<td>%s</td>\n",hostname);
+                        printf("<tr><td>Serial: %s</td></tr>", serial);
+                        printf("</tr>\n");
+                        break;
+                case LIST:
+                                printf("<li>%s Hostname: %s<li>Serial: %s", msg, hostname, serial);
+                        break;
+                default:
+                        printf("%6s %-*s %*s\n", msg, 5, "Name:", hn_len,  hostname);
+                        printf("%6s %-*s %*s\n", msg, 8, "Serial:", 16, serial);			
+        }
+
 }
 
 void displayrecords(int cls)
@@ -245,6 +308,8 @@ void displayrecords(int cls)
 	}
 
 	/* End output for CGI. */
+        print_cpu_str();
+
 	if (runas_cgi)
 	{
 		if (layout==TABLE)
