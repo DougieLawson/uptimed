@@ -128,6 +128,7 @@ char *getIPaddr()
 						inet_ntop(tempIfAddr->ifa_addr->sa_family, tempAddrPtr, addressOutputBuffer, sizeof(addressOutputBuffer));
 						sprintf(ifaceIP,"%s %s", tempIfAddr->ifa_name, addressOutputBuffer);
 					}
+      
 				}
 			}
 		}
