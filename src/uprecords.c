@@ -17,6 +17,14 @@ uptimed - Copyright (c) 1998-2004 Rob Kaper <rob@unixcode.org>
 
 #include "../config.h"
 #include "uprecords.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <time.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <ifaddrs.h>
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -29,6 +37,8 @@ Urec	*u_current;
 time_t	first, prev, tenth, second;
 int		runas_cgi=0, show_max=10, show_milestone=0, layout=PRE, show_downtime=0, run_loop=0, update_interval=5;
 int		sort_by=0, no_ansi=0, no_stats=0, no_current=0, wide_out=0;
+FILE *fp;
+char cFile[2048];
 
 int main(int argc, char *argv[])
 {
@@ -91,6 +101,127 @@ int main(int argc, char *argv[])
 		cat("/etc/uprecords-cgi/uprecords.footer");
 
 	return 0;
+}
+
+char *getIPaddr() 
+{
+
+	struct ifaddrs *interfaceArray = NULL, *tempIfAddr = NULL;
+	void *tempAddrPtr = NULL;
+	int rc = 0;
+	char addressOutputBuffer[INET6_ADDRSTRLEN];
+	char *ifaceIP = malloc(40);
+ 
+	rc = getifaddrs(&interfaceArray);  /* retrieve the current interfaces */
+	if (rc == 0)
+	{    
+		for(tempIfAddr = interfaceArray; tempIfAddr != NULL; tempIfAddr = tempIfAddr->ifa_next)
+		{
+			if (tempIfAddr->ifa_addr != NULL) 
+			{
+				if(tempIfAddr->ifa_addr->sa_family == AF_INET)
+				{
+					tempAddrPtr = &((struct sockaddr_in *)tempIfAddr->ifa_addr)->sin_addr;
+      
+					if (strncmp(tempIfAddr->ifa_name, "lo",2) && strncmp(tempIfAddr->ifa_name, "tun", 3)) /* interface ISN'T loopback or tunnel */
+					{
+						inet_ntop(tempIfAddr->ifa_addr->sa_family, tempAddrPtr, addressOutputBuffer, sizeof(addressOutputBuffer));
+						sprintf(ifaceIP,"%s %s", tempIfAddr->ifa_name, addressOutputBuffer);
+					}
+      
+				}
+			}
+		}
+
+		freeifaddrs(interfaceArray);             /* free the dynamic memory */
+		interfaceArray = NULL;                   /* prevent use after free  */
+	}
+	else
+	{
+		printf("getifaddrs() failed with errno =  %d %s \n",
+		errno, strerror(errno));
+		sprintf(ifaceIP, "ERROR ##.##.##.##");
+	}
+  
+	return ifaceIP;
+}
+
+void print_IP_addr()
+{
+	char *msg = "IP";
+	
+        switch(layout)
+        {
+                case TABLE:
+                        printf("<tr>\n");
+                        printf("<td colspan=2>%s Details</td>\n", msg);
+                        printf("<td colspan=2>%s</td>\n", getIPaddr());
+			printf("</tr>\n");
+                        break;
+                case LIST:
+			printf("<li>%s Details: %s", msg, getIPaddr());
+                        break;
+                default:
+			printf("%6s %-*s %*s\n", msg, 8, "Details:", 16, getIPaddr());
+        }
+
+}
+
+void print_cpu_str()
+{
+
+        char *substr = "Serial\t\t: ";
+        char *pos = malloc(strlen(cFile) + 1);
+        char hostname[64];
+        char *serial = malloc(18);
+        char *msg = " Host";
+        int hn_len;
+
+        gethostname(hostname, sizeof hostname);
+        hn_len = strlen(hostname);
+
+        fp = fopen("/proc/cpuinfo","rb");
+        if (fp == NULL)
+        {
+                printf("fopen failed, errno = %d\n", errno);
+                exit (20);
+        }
+        fread(cFile, 1, sizeof(cFile), fp);
+
+        pos = strstr(cFile,substr);
+        if(pos)
+        {
+                pos = pos + strlen(substr);
+                strcpy(serial,pos);
+                strcpy(serial+17,"\0");
+        }
+
+        if (runas_cgi) {
+                if (layout!=PRE) {
+                        msg = "CPU Details";
+                }
+        }
+
+        switch(layout)
+        {
+                case TABLE:
+                        printf("<tr>\n");
+                        printf("<td colspan=2>%s</td>\n", msg);
+                        printf("<td colspan=2>Hostname %s</td>\n",hostname);
+			printf("</tr>\n");
+                        printf("<tr><td colspan=2>&nbsp;</td>\n");
+                        printf("<td colspan=2>Serial: %s</td>\n", serial);
+                        printf("</tr>\n");
+                        break;
+                case LIST:
+			printf("<li>%s Hostname: %s", msg, hostname);
+			printf("<li>Serial: %s", serial);
+                        break;
+                default:
+			printf("%6s %-*s %*s\n", msg, 5, "Name:", hn_len,  hostname);
+			printf("%6s %-*s %*s", msg, 7, "Serial:", 16, serial);			
+        }
+
 }
 
 void displayrecords(int cls)
@@ -245,6 +376,9 @@ void displayrecords(int cls)
 	}
 
 	/* End output for CGI. */
+        print_cpu_str();
+	print_IP_addr();
+
 	if (runas_cgi)
 	{
 		if (layout==TABLE)
