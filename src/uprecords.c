@@ -123,7 +123,7 @@ char *getIPaddr()
 				{
 					tempAddrPtr = &((struct sockaddr_in *)tempIfAddr->ifa_addr)->sin_addr;
       
-					if (strncmp(tempIfAddr->ifa_name, "lo",2) && strncmp(tempIfAddr->ifa_name, "tun", 3)) /* interface ISN'T loopback or tunnel */
+					if ((strncmp(tempIfAddr->ifa_name, "wl",2) == 0) | (strncmp(tempIfAddr->ifa_name, "enx", 3) == 0) | (strncmp(tempIfAddr->ifa_name, "eth", 3) == 0)) /* interface ISN'T loopback or tunnel */
 					{
 						inet_ntop(tempIfAddr->ifa_addr->sa_family, tempAddrPtr, addressOutputBuffer, sizeof(addressOutputBuffer));
 						sprintf(ifaceIP,"%s %s", tempIfAddr->ifa_name, addressOutputBuffer);
