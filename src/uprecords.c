@@ -25,6 +25,7 @@ uptimed - Copyright (c) 1998-2004 Rob Kaper <rob@unixcode.org>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <arpa/inet.h>
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -39,11 +40,17 @@ int		runas_cgi=0, show_max=10, show_milestone=0, layout=PRE, show_downtime=0, ru
 int		sort_by=0, no_ansi=0, no_stats=0, no_current=0, wide_out=0;
 FILE *fp;
 char cFile[2048];
+char hostname[64];
+int hn_len;
 
 int main(int argc, char *argv[])
 {
 	/* Read config file. */
 	read_config();
+
+        gethostname(hostname, sizeof hostname);
+        hn_len = strlen(hostname);
+        hostname[0] = toupper(hostname[0]);
 
 	/* Check if we are being run as CGI program. */
 	if (strstr(argv[0], ".cgi"))
@@ -172,13 +179,8 @@ void print_cpu_str()
 
         char *substr = "Serial\t\t: ";
         char *pos = malloc(strlen(cFile) + 1);
-        char hostname[64];
         char *serial = malloc(18);
         char *msg = " Host";
-        int hn_len;
-
-        gethostname(hostname, sizeof hostname);
-        hn_len = strlen(hostname);
 
         fp = fopen("/proc/cpuinfo","rb");
         if (fp == NULL)
