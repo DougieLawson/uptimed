@@ -25,6 +25,8 @@ uptimed - Copyright (c) 1998-2004 Rob Kaper <rob@unixcode.org>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <ifaddrs.h>
+#include <arpa/inet.h>
+
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -103,66 +105,70 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-char *getIPaddr() 
+char* getIPaddr ()
 {
 
-	struct ifaddrs *interfaceArray = NULL, *tempIfAddr = NULL;
-	void *tempAddrPtr = NULL;
-	int rc = 0;
-	char addressOutputBuffer[INET6_ADDRSTRLEN];
-	char *ifaceIP = malloc(40);
- 
-	rc = getifaddrs(&interfaceArray);  /* retrieve the current interfaces */
-	if (rc == 0)
-	{    
-		for(tempIfAddr = interfaceArray; tempIfAddr != NULL; tempIfAddr = tempIfAddr->ifa_next)
-		{
-			if (tempIfAddr->ifa_addr != NULL) 
-			{
-				if(tempIfAddr->ifa_addr->sa_family == AF_INET)
-				{
-					tempAddrPtr = &((struct sockaddr_in *)tempIfAddr->ifa_addr)->sin_addr;
-      
-					if ((strncmp(tempIfAddr->ifa_name, "wl",2) == 0) | (strncmp(tempIfAddr->ifa_name, "enx", 3) == 0) | (strncmp(tempIfAddr->ifa_name, "eth", 3) == 0)) /* interface ISN'T loopback or tunnel */
-					{
-						inet_ntop(tempIfAddr->ifa_addr->sa_family, tempAddrPtr, addressOutputBuffer, sizeof(addressOutputBuffer));
-						sprintf(ifaceIP,"%s %s", tempIfAddr->ifa_name, addressOutputBuffer);
-					}
-      
-				}
-			}
-		}
+  struct ifaddrs *interfaceArray = NULL, *tempIfAddr = NULL;
+  void *tempAddrPtr = NULL;
+  int rc = 0;
+  char addressOutputBuffer[INET6_ADDRSTRLEN];
+  char *ifaceIP = malloc (40);
 
-		freeifaddrs(interfaceArray);             /* free the dynamic memory */
-		interfaceArray = NULL;                   /* prevent use after free  */
-	}
-	else
+  rc = getifaddrs (&interfaceArray);	/* retrieve the current interfaces */
+  if (rc == 0)
+    {
+      for (tempIfAddr = interfaceArray; tempIfAddr != NULL;
+	   tempIfAddr = tempIfAddr->ifa_next)
 	{
-		printf("getifaddrs() failed with errno =  %d %s \n",
-		errno, strerror(errno));
-		sprintf(ifaceIP, "ERROR ##.##.##.##");
+	  if (tempIfAddr->ifa_addr->sa_family == AF_INET)
+	    {
+	      tempAddrPtr =
+		&((struct sockaddr_in *) tempIfAddr->ifa_addr)->sin_addr;
+
+	      if (strncmp (tempIfAddr->ifa_name, "lo", 2))	/* interface ISN'T loopback */
+		{
+		  inet_ntop (tempIfAddr->ifa_addr->sa_family, tempAddrPtr,
+			     addressOutputBuffer,
+			     sizeof (addressOutputBuffer));
+		  sprintf (ifaceIP, "%s %s\0", tempIfAddr->ifa_name,
+			   addressOutputBuffer);
+		}
+	    }
 	}
-  
-	return ifaceIP;
+
+      freeifaddrs (interfaceArray);	/* free the dynamic memory */
+      interfaceArray = NULL;	/* prevent use after free  */
+    }
+  else
+    {
+      printf ("getifaddrs() failed with errno =  %d %s \0",
+	      errno, strerror (errno));
+    }
+
+  return ifaceIP;
 }
 
 void print_IP_addr()
 {
 	char *msg = "IP";
+	char *ifaceIP = getIPaddr ();
+	int len = strlen(ifaceIP);
+	ifaceIP[len+1] = '\0';
+
 	
         switch(layout)
         {
                 case TABLE:
                         printf("<tr>\n");
                         printf("<td colspan=2>%s Details</td>\n", msg);
-                        printf("<td colspan=2>%s</td>\n", getIPaddr());
+                        printf("<td colspan=2>%s</td>\n", ifaceIP);
 			printf("</tr>\n");
                         break;
                 case LIST:
-			printf("<li>%s Details: %s", msg, getIPaddr());
+			printf("<li>%s Details: %s", msg, ifaceIP);
                         break;
                 default:
-			printf("%6s %-*s %*s\n", msg, 8, "Details:", 16, getIPaddr());
+			printf("%6s %-*s %*s\n", msg, 8, "Details:", 16, ifaceIP);
         }
 
 }
@@ -192,8 +198,8 @@ void print_cpu_str()
         if(pos)
         {
                 pos = pos + strlen(substr);
+		strcpy(pos+17,"\0");
                 strcpy(serial,pos);
-                strcpy(serial+17,"\0");
         }
 
         if (runas_cgi) {
