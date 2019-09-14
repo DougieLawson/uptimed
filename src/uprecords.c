@@ -35,7 +35,11 @@ uptimed - Copyright (c) 1998-2004 Rob Kaper <rob@unixcode.org>
 #define SYSWIDTH 24
 #define DOWNWIDTH 20
 
+#ifdef __ANDROID__
+extern Urec *u_current;
+#else
 Urec	*u_current;
+#endif
 time_t	first, prev, tenth, second;
 int		runas_cgi=0, show_max=10, show_milestone=0, layout=PRE, show_downtime=0, run_loop=0, update_interval=5;
 int		sort_by=0, no_ansi=0, no_stats=0, no_current=0, wide_out=0;
@@ -393,7 +397,7 @@ void displayrecords(int cls)
 		else
 			printf("</pre>\n");
 
-		printf("<small><a href=\"http://podgorny.cz/uptimed/\">uptimed</a> by Rob Kaper (<a href=\"mailto:rob@unixcode.org\">rob@unixcode.org</a>) - currently maintained by Radek Podgorny (<a href=\"mailto:radek@podgorny.cz\">radek@podgorny.cz</a>)</small>\n");
+		printf("<small><a href=\"https://github.com/rpodgorny/uptimed\">uptimed</a> by Rob Kaper (<a href=\"mailto:rob@unixcode.org\">rob@unixcode.org</a>) - currently maintained by Radek Podgorny (<a href=\"mailto:radek@podgorny.cz\">radek@podgorny.cz</a>)</small>\n");
 	}
 }
 
@@ -629,6 +633,9 @@ void scan_args(int argc, char *argv[])
 		switch(i)
 		{
 				case '?':
+#ifdef __ANDROID__
+						fputc('\n', stderr);
+#endif
 						print_help(argv);
 						break;
 				case 'a':
