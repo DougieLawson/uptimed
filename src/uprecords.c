@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 char* getIPaddr ()
 {
 
-  struct ifaddrs *interfaceArray = NULL, *tempIfAddr = NULL;
+  struct ifaddrs *interfaceArray = NULL, *ifa_tmp = NULL;
   void *tempAddrPtr = NULL;
   int rc = 0;
   char addressOutputBuffer[INET6_ADDRSTRLEN];
@@ -117,22 +117,21 @@ char* getIPaddr ()
   rc = getifaddrs (&interfaceArray);	/* retrieve the current interfaces */
   if (rc == 0)
     {
-      for (tempIfAddr = interfaceArray; tempIfAddr != NULL;
-	   tempIfAddr = tempIfAddr->ifa_next)
-	{
-	  if (tempIfAddr->ifa_addr->sa_family == AF_INET)
-	    {
-	      tempAddrPtr =
-		&((struct sockaddr_in *) tempIfAddr->ifa_addr)->sin_addr;
+      for (ifa_tmp = interfaceArray; ifa_tmp != NULL;
+	   ifa_tmp = ifa_tmp->ifa_next)
+	{ if (ifa_tmp->ifa_addr != NULL) 
+	    { if (ifa_tmp->ifa_addr->sa_family == AF_INET)
+                {
+	          tempAddrPtr = &((struct sockaddr_in *) ifa_tmp->ifa_addr)->sin_addr;
 
-	      if (strncmp (tempIfAddr->ifa_name, "lo", 2))	/* interface ISN'T loopback */
-		{
-		  inet_ntop (tempIfAddr->ifa_addr->sa_family, tempAddrPtr,
-			     addressOutputBuffer,
+	          if (((ifa_tmp->ifa_flags & IFF_LOOPBACK) == 0) & ((ifa_tmp->ifa_flags & IFF_POINTOPOINT) == 0))
+	            {
+		      inet_ntop (ifa_tmp->ifa_addr->sa_family, tempAddrPtr,
+		  	     addressOutputBuffer,
 			     sizeof (addressOutputBuffer));
-		  sprintf (ifaceIP, "%s %s\0", tempIfAddr->ifa_name,
-			   addressOutputBuffer);
-		}
+		      sprintf (ifaceIP, "%s %s\0", ifa_tmp->ifa_name, addressOutputBuffer);
+	            }
+	        }
 	    }
 	}
 
